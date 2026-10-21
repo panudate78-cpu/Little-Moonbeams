@@ -24,6 +24,7 @@ export default async function CollectionsPage() {
           oceans and the quiet magic of crystals.
         </p>
       </div>
+      
       <div className="mt-10 grid gap-6 sm:grid-cols-2">
         {collections.map((c) => (
           <Link
@@ -31,7 +32,14 @@ export default async function CollectionsPage() {
             href={`/collections/${c.slug}`}
             className="group relative block aspect-[16/9] overflow-hidden rounded-2xl"
           >
-       
+       {c.image && (
+  <Image
+    src={c.image}
+    alt={c.name}
+    fill
+    className="object-cover transition duration-500 group-hover:scale-105"
+  />
+)}
             /
             <div className="absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent" />
             <div className="absolute bottom-0 p-6">
