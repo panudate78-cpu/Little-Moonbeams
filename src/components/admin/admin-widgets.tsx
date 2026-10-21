@@ -98,29 +98,64 @@ export function CatalogManager({
   withImage?: boolean;
 }) {
   const router = useRouter();
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
+  
 
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, image: image || undefined }),
-    });
-    if (res.ok) {
-      setName("");
-      setDescription("");
-      setImage("");
-      router.refresh();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Could not add");
-    }
+
+  async function uploadCollectionImage(
+  e: React.ChangeEvent<HTMLInputElement>
+) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  const res = await fetch("/api/admin/upload", {
+    method: "POST",
+    body: fd,
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    setImage(data.url);
+  } else {
+    setError("Upload failed");
   }
+}
+
+ async function add(e: React.FormEvent) {
+  e.preventDefault();
+  setError("");
+
+  const res = await fetch(endpoint, {
+    method: editingId ? "PATCH" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: editingId,
+      name,
+      description,
+      image: image || undefined,
+    }),
+  });
+
+  if (res.ok) {
+    setName("");
+    setDescription("");
+    setImage("");
+    setEditingId(null);
+
+    router.refresh();
+  } else {
+    const data = await res.json().catch(() => ({}));
+    setError(data.error ?? "Could not save");
+  }
+}
 
   return (
     <div className="card p-6">
@@ -129,32 +164,72 @@ export function CatalogManager({
         <input required className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
         <input className="input" placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
         {withImage && (
-          <input className="input" placeholder="Image URL (optional)" value={image} onChange={(e) => setImage(e.target.value)} />
-        )}
+  <>
+    <label className="btn-outline cursor-pointer inline-block">
+      Upload Collection Image
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={uploadCollectionImage}
+      />
+    </label>
+
+    <input
+      className="input"
+      placeholder="Image URL (optional)"
+      value={image}
+      onChange={(e) => setImage(e.target.value)}
+    />
+  </>
+)}
         {error && <p className="text-xs text-blush">{error}</p>}
-        <button className="btn-primary !px-5 !py-2 text-xs">+ Add</button>
+        <button className="btn-primary !px-5 !py-2 text-xs">
+        {editingId ? "Save Changes" : "+ Add"}
+        </button>
       </form>
       <ul className="mt-5 space-y-2">
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between rounded-xl bg-cream px-4 py-2.5 text-sm">
-            <span>
-              <span className="font-semibold">{item.name}</span>{" "}
-              <span className="text-xs text-inksoft">/{item.slug}</span>
-            </span>
-            <button
-              onClick={async () => {
-                if (!confirm(`Delete "${item.name}"?`)) return;
-                await fetch(endpoint, {
-                  method: "DELETE",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ id: item.id }),
-                });
-                router.refresh();
-              }}
-              className="text-xs font-bold text-blush uppercase hover:underline"
-            >
-              Delete
-            </button>
+           <span className="font-semibold">
+          {item.name}
+          </span>
+
+<div className="flex gap-3">
+  <button
+    onClick={() => {
+  setEditingId(item.id);
+  setName(item.name);
+  setDescription(item.description ?? "");
+}}
+    className="text-xs font-bold text-ink uppercase hover:underline"
+  >
+    Edit
+  </button>
+
+  <button
+    onClick={async () => {
+      if (
+        !confirm(
+          `Delete "${item.name}"?\n\nThis action cannot be undone.`
+        )
+      )
+        return;
+
+      await fetch(endpoint, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id }),
+      });
+
+      router.refresh();
+    }}
+    className="text-xs font-bold text-blush uppercase hover:underline"
+  >
+    Delete
+  </button>
+</div>
+          
           </li>
         ))}
         {items.length === 0 && <li className="text-sm text-inksoft">None yet.</li>}

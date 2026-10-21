@@ -9,7 +9,7 @@ interface GalleryImage {
 }
 
 export function ProductGallery({ images, name }: { images: GalleryImage[]; name: string }) {
-  const list = images.length > 0 ? images : [{ url: "/images/hero.jpg", alt: name }];
+  const list = images;
   const [active, setActive] = useState(0);
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState("50% 50%");

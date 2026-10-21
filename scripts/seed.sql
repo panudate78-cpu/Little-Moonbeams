@@ -15,12 +15,6 @@ INSERT INTO categories (id, name, slug, description) VALUES
   (5, 'Anklets', 'anklets', 'Delicate pearl and silver anklets.')
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO collections (id, name, slug, description, image) VALUES
-  (1, 'Moonlight', 'moonlight', 'Luminous moonstones, opals and pearls that glow like the full moon on water.', '/images/hero.jpg'),
-  (2, 'Celestial Dreams', 'celestial-dreams', 'Stars, crescents and amethyst skies — jewellery for midnight dreamers.', '/images/products/star-earrings.jpg'),
-  (3, 'Earth & Stone', 'earth-and-stone', 'Raw labradorite, turquoise and grounding gems shaped by nature herself.', '/images/products/labradorite-ring.jpg'),
-  (4, 'Ocean Whisper', 'ocean-whisper', 'Freshwater pearls and sea-soft hues carried in on the tide.', '/images/products/pearl-anklet.jpg')
-ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO products (id, name, slug, sku, description, materials, stone_info, care_instructions, price, sale_price, stock, low_stock_threshold, status, featured, is_new, is_bestseller, category_id, collection_id, meta_title, meta_description) VALUES
   (1, 'Luna Moonstone Pendant Necklace', 'luna-moonstone-pendant-necklace', 'LM-NECK-001',
@@ -98,24 +92,7 @@ INSERT INTO products (id, name, slug, sku, description, materials, stone_info, c
    2200, 1800, 25, 5, 'active', false, false, false, 3, 2, NULL, NULL)
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO product_images (product_id, url, alt, position) VALUES
-  (1, '/images/products/moonstone-necklace.jpg', 'Luna moonstone pendant necklace on cream linen', 0),
-  (1, '/images/hero.jpg', 'Little Moonbeam''s jewellery flat lay', 1),
-  (2, '/images/products/amethyst-pendant.jpg', 'Raw amethyst crystal pendant wrapped in silver wire', 0),
-  (2, '/images/hero.jpg', 'Amethyst with the Moonbeam collection', 1),
-  (3, '/images/products/star-earrings.jpg', 'Silver star and crescent moon drop earrings', 0),
-  (4, '/images/products/rose-quartz-bracelet.jpg', 'Rose quartz beaded bracelet with gold moon charm', 0),
-  (4, '/images/hero.jpg', 'Rose quartz bracelet styled flat lay', 1),
-  (5, '/images/products/labradorite-ring.jpg', 'Labradorite sterling silver ring', 0),
-  (6, '/images/products/pearl-anklet.jpg', 'Freshwater pearl and silver bead anklet', 0),
-  (7, '/images/products/opal-studs.jpg', 'Iridescent opal stud earrings in silver', 0),
-  (7, '/images/products/star-earrings.jpg', 'Opal studs styled with celestial earrings', 1),
-  (8, '/images/products/turquoise-necklace.jpg', 'Turquoise and silver beaded necklace', 0),
-  (9, '/images/products/amethyst-pendant.jpg', 'Amethyst beads close up', 0),
-  (10, '/images/products/moonstone-necklace.jpg', 'Moonstone glowing in soft light', 0),
-  (11, '/images/products/pearl-anklet.jpg', 'Freshwater pearls on cream linen', 0),
-  (12, '/images/products/star-earrings.jpg', 'Textured sterling silver hoops', 0)
-ON CONFLICT DO NOTHING;
+
 
 INSERT INTO reviews (product_id, name, rating, title, comment, approved) VALUES
   (1, 'Emily R.', 5, 'Even more beautiful in person', 'The moonstone catches the light in the most magical way — soft blue flashes everywhere. The packaging was gorgeous too. Truly special.', true),
