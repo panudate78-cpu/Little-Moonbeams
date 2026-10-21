@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #faf7f1;
+  --color-ivory: #fffdf8;
+  --color-gold: #c3a572;
+  --color-gold-dark: #a4854f;
+  --color-silvermist: #c9cfd8;
+  --color-lavender: #a596c7;
+  --color-lavender-deep: #7b6ba0;
+  --color-lavender-light: #f0ecf7;
+  --color-dustyblue: #8fa3bf;
+  --color-dustyblue-light: #e9eef6;
+  --color-blush: #dfb8b0;
+  --color-blush-light: #f9efed;
+  --color-ink: #3c3a4a;
+  --color-inksoft: #716d84;
+  --color-night: #2b2838;
+
+  --font-display: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-script: var(--font-parisienne), "Parisienne", cursive;
+  --font-body: var(--font-nunito), "Nunito Sans", system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+.font-script {
+  font-family: var(--font-script);
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-ink px-7 py-3 text-sm font-semibold tracking-wide text-ivory transition hover:bg-night hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-gold {
+  @apply inline-flex items-center justify-center gap-2 rounded-full bg-gold px-7 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-gold-dark hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-outline {
+  @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/30 bg-transparent px-7 py-3 text-sm font-semibold tracking-wide text-ink transition hover:border-ink hover:bg-ink hover:text-ivory;
+}
+
+.input {
+  @apply w-full rounded-xl border border-silvermist bg-ivory px-4 py-2.5 text-sm text-ink outline-none transition placeholder:text-inksoft/60 focus:border-lavender focus:ring-2 focus:ring-lavender/30;
+}
+
+.label {
+  @apply mb-1.5 block text-xs font-bold tracking-widest text-inksoft uppercase;
+}
+
+.card {
+  @apply rounded-2xl border border-silvermist/40 bg-ivory shadow-sm;
+}
+
+.section-title {
+  @apply font-display text-3xl text-ink sm:text-4xl;
+}
+
+.eyebrow {
+  @apply text-xs font-bold tracking-[0.25em] text-gold uppercase;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.twinkle {
+  animation: twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.floaty {
+  animation: floaty 5s ease-in-out infinite;
+}
+
+::selection {
+  background-color: var(--color-lavender);
+  color: white;
+}

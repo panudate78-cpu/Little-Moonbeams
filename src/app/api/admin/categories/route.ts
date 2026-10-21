@@ -1,0 +1,30 @@
+import { db } from "@/db";
+import { categories } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { requireAdmin } from "@/lib/auth";
+import { slugify } from "@/lib/utils";
+
+export async function POST(req: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const { name, description } = await req.json();
+  if (!name) return Response.json({ error: "Name required" }, { status: 400 });
+  try {
+    await db.insert(categories).values({
+      name: String(name),
+      slug: slugify(String(name)),
+      description: description ? String(description) : null,
+    });
+    return Response.json({ ok: true });
+  } catch {
+    return Response.json({ error: "Category already exists." }, { status: 409 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const admin = await requireAdmin();
+  if (!admin) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await req.json();
+  await db.delete(categories).where(eq(categories.id, Number(id)));
+  return Response.json({ ok: true });
+}
