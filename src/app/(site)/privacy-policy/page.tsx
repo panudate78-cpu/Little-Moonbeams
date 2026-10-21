@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Little Moonbeam's collects, uses and protects your personal data.",
+  description: "How Little Moonbeam's Creations collects, uses and protects your personal data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="font-display text-xl text-ink">1. Who we are</h2>
           <p className="mt-2">
-            Little Moonbeam&apos;s (&quot;we&quot;, &quot;us&quot;) is a UK-based handmade
+            Little Moonbeam&apos;s Creations (&quot;we&quot;, &quot;us&quot;) is a UK-based handmade
             jewellery boutique. This policy explains how we handle your personal information when
             you visit our website or place an order.
           </p>
@@ -58,14 +58,14 @@ export default function PrivacyPolicyPage() {
           <h2 className="font-display text-xl text-ink">6. Your rights</h2>
           <p className="mt-2">
             Under UK GDPR you may request access to, correction of, or deletion of your personal
-            data at any time. Email hello@littlemoonbeams.co.uk and we&apos;ll respond within 30
+            data at any time. Email hello@littlemoonbeamscreations.co.uk and we'll respond within 30
             days.
           </p>
         </section>
         <section>
           <h2 className="font-display text-xl text-ink">7. Contact</h2>
           <p className="mt-2">
-            Questions about this policy? Contact us at hello@littlemoonbeams.co.uk.
+            Questions about this policy? Contact us at hello@littlemoonbeamscreations.co.uk.
           </p>
         </section>
       </div>

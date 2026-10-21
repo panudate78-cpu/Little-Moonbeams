@@ -31,13 +31,8 @@ export default async function CollectionsPage() {
             href={`/collections/${c.slug}`}
             className="group relative block aspect-[16/9] overflow-hidden rounded-2xl"
           >
-            <Image
-              src={c.image || "/images/hero.jpg"}
-              alt={c.name}
-              fill
-              sizes="(max-width: 640px) 100vw, 50vw"
-              className="object-cover transition duration-500 group-hover:scale-105"
-            />
+       
+            /
             <div className="absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent" />
             <div className="absolute bottom-0 p-6">
               <h2 className="font-display text-2xl text-ivory">{c.name}</h2>

@@ -25,7 +25,7 @@ export function Logo({ light = false }: { light?: boolean }) {
         <span
           className={`font-script text-2xl sm:text-[1.7rem] ${light ? "text-ivory" : "text-ink"}`}
         >
-          Little Moonbeam&apos;s
+          Little Moonbeam's Creations
         </span>
         <span
           className={`mt-1 hidden text-[0.6rem] font-bold tracking-[0.28em] uppercase sm:block ${

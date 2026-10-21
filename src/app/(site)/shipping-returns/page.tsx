@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Shipping & Returns",
-  description: "Little Moonbeam's shipping rates, delivery times and 30-day returns policy.",
+  description: "Little Moonbeam's Creations shipping rates, delivery times and 30-day returns policy.",
 };
 
 export default function ShippingReturnsPage() {
@@ -59,7 +59,7 @@ export default function ShippingReturnsPage() {
             packaging for a full refund or exchange.
           </p>
           <p>
-            To start a return, simply email <strong>hello@littlemoonbeams.co.uk</strong> with your
+            To start a return, simply email <strong>hello@littlemoonbeamscreations.co.uk</strong> with your
             order number. Refunds are processed within 5 working days of receiving your return.
           </p>
           <p>

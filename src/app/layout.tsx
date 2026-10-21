@@ -24,18 +24,18 @@ const nunito = Nunito_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: "Little Moonbeam's | Handcrafted Jewellery Inspired by Nature and Moonlight",
-    template: "%s | Little Moonbeam's",
+    default: "Little Moonbeam's Creations | Handcrafted Jewellery Inspired by Nature and Moonlight",
+    template: "%s | Little Moonbeam's Creations",
   },
   description:
-    "Little Moonbeam's creates handmade jewellery from precious stones, crystals, gemstones and sterling silver. Handcrafted jewellery inspired by nature and moonlight.",
+    "Little Moonbeam's Creations creates handmade jewellery from precious stones, crystals, gemstones and sterling silver. Handcrafted jewellery inspired by nature and moonlight.",
   openGraph: {
-    siteName: "Little Moonbeam's",
+    siteName: "Little Moonbeam's Creations",
     type: "website",
-    title: "Little Moonbeam's | Handcrafted Jewellery",
+    title: "Little Moonbeam's Creations | Handcrafted Jewellery",
     description:
       "Handmade jewellery crafted from precious stones, crystals, gemstones and sterling silver.",
-    images: ["/images/hero.jpg"],
+  
   },
   twitter: {
     card: "summary_large_image",

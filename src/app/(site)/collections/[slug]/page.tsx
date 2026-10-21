@@ -34,13 +34,7 @@ export default async function CollectionPage(props: Props) {
   return (
     <div>
       <section className="relative overflow-hidden bg-night">
-        <Image
-          src={collection.image || "/images/hero.jpg"}
-          alt={collection.name}
-          fill
-          sizes="100vw"
-          className="object-cover opacity-50"
-        />
+       
         <div className="relative mx-auto max-w-7xl px-6 py-20 text-center">
           <p className="eyebrow">A Little Moonbeam&apos;s collection</p>
           <h1 className="mt-2 font-display text-4xl text-ivory sm:text-5xl">{collection.name}</h1>

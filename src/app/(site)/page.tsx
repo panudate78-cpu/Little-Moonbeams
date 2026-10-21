@@ -47,14 +47,8 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-night">
         <div className="absolute inset-0">
-          <Image
-            src="/images/hero.jpg"
-            alt="Handmade crystal jewellery by Little Moonbeam's"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover opacity-60"
-          />
+          
+          /
           <div className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/50 to-transparent" />
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col justify-center px-6 py-24 sm:py-36">
@@ -136,13 +130,8 @@ export default async function HomePage() {
                   href={`/collections/${c.slug}`}
                   className="group relative block aspect-[4/5] overflow-hidden rounded-2xl"
                 >
-                  <Image
-                    src={c.image || "/images/hero.jpg"}
-                    alt={c.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, 25vw"
-                    className="object-cover transition duration-500 group-hover:scale-105"
-                  />
+                 
+                  /
                   <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent" />
                   <div className="absolute bottom-0 p-5">
                     <h3 className="font-display text-xl text-ivory">{c.name}</h3>

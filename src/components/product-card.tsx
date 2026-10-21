@@ -20,13 +20,7 @@ export function ProductCard({ product }: { product: CardProduct }) {
     <div className="group card relative overflow-hidden transition hover:-translate-y-1 hover:shadow-xl">
       <Link href={`/product/${product.slug}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-dustyblue-light">
-          <Image
-            src={product.image || "/images/hero.jpg"}
-            alt={product.name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
-          />
+          
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {onSale && (
               <span className="rounded-full bg-blush px-2.5 py-1 text-[0.65rem] font-bold tracking-wider text-white uppercase">

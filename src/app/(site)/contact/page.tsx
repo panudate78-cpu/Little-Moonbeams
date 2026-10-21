@@ -22,7 +22,7 @@ export default function ContactPage() {
         <aside className="space-y-4">
           <div className="card p-6">
             <h2 className="font-display text-lg">✉️ Email</h2>
-            <p className="mt-1 text-sm text-inksoft">hello@littlemoonbeams.co.uk</p>
+            <p className="mt-1 text-sm text-inksoft">hello@littlemoonbeamscreations.co.uk</p>
           </div>
           <div className="card p-6">
             <h2 className="font-display text-lg">🕰 Studio hours</h2>
