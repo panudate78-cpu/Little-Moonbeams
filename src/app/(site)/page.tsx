@@ -1,3 +1,4 @@
+import MaintenancePage from "../maintenance/page";
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/db";
@@ -12,16 +13,8 @@ import { Stars } from "@/components/stars";
 
 export const dynamic = "force-dynamic";
 
-const INSTAGRAM_IMAGES = [
-  "/images/products/moonstone-necklace.jpg",
-  "/images/products/star-earrings.jpg",
-  "/images/products/rose-quartz-bracelet.jpg",
-  "/images/products/amethyst-pendant.jpg",
-  "/images/products/opal-studs.jpg",
-  "/images/products/labradorite-ring.jpg",
-];
-
 export default async function HomePage() {
+  return <MaintenancePage />;
   const [featured, newArrivals, bestsellers, collections, testimonials] = await Promise.all([
     getProductsByFlag("featured", 4),
     getProductsByFlag("isNew", 4),
@@ -126,20 +119,30 @@ export default async function HomePage() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {collections.slice(0, 4).map((c) => (
                 <Link
-                  key={c.id}
-                  href={`/collections/${c.slug}`}
-                  className="group relative block aspect-[4/5] overflow-hidden rounded-2xl"
-                >
-                 
-                  /
-                  <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent" />
-                  <div className="absolute bottom-0 p-5">
-                    <h3 className="font-display text-xl text-ivory">{c.name}</h3>
-                    <p className="mt-1 text-xs font-bold tracking-widest text-gold uppercase">
-                      Explore →
-                    </p>
-                  </div>
-                </Link>
+  key={c.id}
+  href={`/collections/${c.slug}`}
+  className="group relative block aspect-[4/5] overflow-hidden rounded-2xl"
+>
+  {c.image && (
+   <Image
+  src={c.image}
+  alt={c.name}
+  fill
+  priority
+  sizes="(max-width: 768px) 100vw, 25vw"
+  className="object-cover transition duration-500 group-hover:scale-105"
+/>
+  )}
+
+  <div className="absolute inset-0 bg-gradient-to-t from-night/80 via-transparent" />
+
+  <div className="absolute bottom-0 p-5">
+    <h3 className="font-display text-xl text-ivory">{c.name}</h3>
+    <p className="mt-1 text-xs font-bold tracking-widest text-gold uppercase">
+      Explore →
+    </p>
+  </div>
+</Link>
               ))}
             </div>
           </div>
@@ -218,38 +221,6 @@ export default async function HomePage() {
               Read all reviews →
             </Link>
           </div>
-        </div>
-      </section>
-
-      {/* Instagram */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="mb-8 text-center">
-          <p className="eyebrow">Follow along</p>
-          <h2 className="section-title mt-2">
-            <span className="font-script text-lavender-deep">@littlemoonbeams</span> on Instagram
-          </h2>
-        </div>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6 sm:gap-3">
-          {INSTAGRAM_IMAGES.map((src) => (
-            <a
-              key={src}
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="group relative block aspect-square overflow-hidden rounded-xl"
-            >
-              <Image
-                src={src}
-                alt="Little Moonbeam's Creations on Instagram"
-                fill
-                sizes="(max-width: 640px) 33vw, 16vw"
-                className="object-cover transition duration-500 group-hover:scale-110"
-              />
-              <span className="absolute inset-0 flex items-center justify-center bg-night/0 text-xl text-ivory opacity-0 transition group-hover:bg-night/40 group-hover:opacity-100">
-                ✦
-              </span>
-            </a>
-          ))}
         </div>
       </section>
 

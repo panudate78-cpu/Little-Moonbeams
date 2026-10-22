@@ -34,11 +34,13 @@ export default async function CollectionsPage() {
           >
        {c.image && (
   <Image
-    src={c.image}
-    alt={c.name}
-    fill
-    className="object-cover transition duration-500 group-hover:scale-105"
-  />
+  src={c.image}
+  alt={c.name}
+  fill
+  priority
+  sizes="(max-width: 768px) 100vw, 50vw"
+  className="object-cover transition duration-500 group-hover:scale-105"
+/>
 )}
             /
             <div className="absolute inset-0 bg-gradient-to-t from-night/85 via-night/20 to-transparent" />
