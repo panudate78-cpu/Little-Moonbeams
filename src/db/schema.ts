@@ -180,7 +180,12 @@ export const contactMessages = pgTable("contact_messages", {
   message: text("message").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
-
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  maintenanceMode: boolean("maintenance_mode")
+    .notNull()
+    .default(false),
+});
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type ProductImage = typeof productImages.$inferSelect;

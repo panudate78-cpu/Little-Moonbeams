@@ -175,3 +175,9 @@ export async function getAllCategories() {
 export async function getAllCollections() {
   return db.select().from(collections).orderBy(asc(collections.name));
 }
+import { siteSettings } from "@/db/schema";
+export async function getSiteSettings() {
+  const settings = await db.select().from(siteSettings).limit(1);
+
+  return settings[0];
+}
