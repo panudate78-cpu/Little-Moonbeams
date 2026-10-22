@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <MoonMark className="h-8 w-8" />
           </span>
           <div>
-            <p className="font-script text-xl leading-none">Little Moonbeam&apos;s</p>
+            <p className="font-script text-xl leading-none">Little Moonbeam&apos;s Creations</p>
             <p className="mt-1 text-[0.6rem] font-bold tracking-[0.25em] text-gold uppercase">
               Admin Studio
             </p>

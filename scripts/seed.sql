@@ -1,9 +1,9 @@
--- Little Moonbeam's seed data (idempotent)
+-- Little Moonbeam's Creations seed data (idempotent)
 BEGIN;
 
 -- Users (password for both: moonbeam123)
 INSERT INTO users (id, email, password_hash, name, role) VALUES
-  (1, 'admin@littlemoonbeams.co.uk', '49fcabdc63e6e75559f4edc5bd502cb0:dafbc47032ad97c6ce18ae407b71b27001c557f4234c69f15d0fe07b6540b9c71bc2055711e3e9e66c474063a3a8353d6a84554d23a17fde4c1c8d715e452fae', 'Moonbeam Admin', 'admin'),
+  (1, 'admin@littlemoonbeamscreations.co.uk', '49fcabdc63e6e75559f4edc5bd502cb0:dafbc47032ad97c6ce18ae407b71b27001c557f4234c69f15d0fe07b6540b9c71bc2055711e3e9e66c474063a3a8353d6a84554d23a17fde4c1c8d715e452fae', 'Moonbeam Admin', 'admin'),
   (2, 'emily@example.com', '5ff6e515d10b8604100d236712859445:adca85b89e6f0e8b4a0115b16f24c71fccf3686b042be503b77587f4a657f95226c19745ffb6b4721073bc0edff47edbbd4bd647a6812b0ff05c0d42701af40c', 'Emily Rose', 'customer')
 ON CONFLICT (email) DO NOTHING;
 

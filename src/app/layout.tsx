@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Cormorant_Garamond, Parisienne, Nunito_Sans } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
-import { getSiteSettings } from "@/lib/catalog";
+//import { getSiteSettings } from "@/lib/catalog";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -49,7 +49,7 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const settings = await getSiteSettings();
+  //const settings = await getSiteSettings();
 
   return (
     <html lang="en" className={`${cormorant.variable} ${parisienne.variable} ${nunito.variable}`}>

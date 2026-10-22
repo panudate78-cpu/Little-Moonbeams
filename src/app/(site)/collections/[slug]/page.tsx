@@ -20,7 +20,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (!collection) return { title: "Collection not found" };
   return {
     title: `${collection.name} Collection`,
-    description: collection.description ?? `Shop the ${collection.name} collection by Little Moonbeam's.`,
+    description: collection.description ?? `Shop the ${collection.name} collection by Little Moonbeam's Creations.`,
   };
 }
 
@@ -36,7 +36,7 @@ export default async function CollectionPage(props: Props) {
       <section className="relative overflow-hidden bg-night">
        
         <div className="relative mx-auto max-w-7xl px-6 py-20 text-center">
-          <p className="eyebrow">A Little Moonbeam&apos;s collection</p>
+          <p className="eyebrow">A Little Moonbeam&apos;s Creations collection</p>
           <h1 className="mt-2 font-display text-4xl text-ivory sm:text-5xl">{collection.name}</h1>
           {collection.description && (
             <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-ivory/80">

@@ -1,3 +1,5 @@
+import { MaintenanceToggle } from "@/components/admin/maintenance-toggle";
+import { siteSettings } from "@/db/schema";
 import Link from "next/link";
 import { db } from "@/db";
 import {
@@ -16,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboard() {
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-  const [revenueRow, orderCountRow, customerCountRow, subsRow, msgRow, lowStock, recentOrders, daily, topProducts] =
+  const [revenueRow, orderCountRow, customerCountRow, subsRow, msgRow, lowStock, recentOrders, daily, topProducts, settings] =
     await Promise.all([
       db
         .select({ total: sql<number>`coalesce(sum(${orders.total}), 0)` })
@@ -53,8 +55,9 @@ export default async function AdminDashboard() {
         .groupBy(orderItems.name)
         .orderBy(desc(sql`sum(${orderItems.quantity})`))
         .limit(5),
+        db.select().from(siteSettings).limit(1),
     ]);
-
+  const maintenanceMode = settings[0]?.maintenanceMode ?? false;
   const revenue = Number(revenueRow[0]?.total ?? 0);
   const orderCount = Number(orderCountRow[0]?.count ?? 0);
   const customerCount = Number(customerCountRow[0]?.count ?? 0);
@@ -93,6 +96,27 @@ export default async function AdminDashboard() {
           </div>
         ))}
       </div>
+
+     <div className="card p-6">
+  <h2 className="font-display text-xl">Store Settings</h2>
+
+  <div className="mt-4 flex items-center justify-between">
+    <span className="text-sm font-medium">
+      Maintenance Mode
+    </span>
+
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-bold ${
+        maintenanceMode
+          ? "bg-red-100 text-red-700"
+          : "bg-green-100 text-green-700"
+      }`}
+    >
+      {maintenanceMode ? "ON" : "OFF"}
+      <MaintenanceToggle enabled={maintenanceMode} />
+    </span>
+  </div>
+</div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Sales chart */}

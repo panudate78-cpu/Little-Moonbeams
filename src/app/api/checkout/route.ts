@@ -110,7 +110,7 @@ export async function POST(req: Request) {
             amount: String(total),
             currency: "gbp",
             "automatic_payment_methods[enabled]": "true",
-            description: `Little Moonbeam's order for ${email}`,
+            description: `Little Moonbeam's Creations order for ${email}`,
           }),
         });
       } catch (err) {

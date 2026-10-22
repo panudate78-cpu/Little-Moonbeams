@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions",
-  description: "Terms and conditions for shopping with Little Moonbeam's.",
+  description: "Terms and conditions for shopping with Little Moonbeam's Creations.",
 };
 
 export default function TermsPage() {
@@ -17,7 +17,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display text-xl text-ink">1. About these terms</h2>
           <p className="mt-2">
-            These terms apply to all purchases made from Little Moonbeam&apos;s. By placing an
+            These terms apply to all purchases made from Little Moonbeam&apos;s Creations. By placing an
             order you agree to these terms. Nothing in them affects your statutory rights.
           </p>
         </section>
@@ -61,7 +61,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display text-xl text-ink">7. Intellectual property</h2>
           <p className="mt-2">
-            All designs, photography and content on this site belong to Little Moonbeam&apos;s and
+            All designs, photography and content on this site belong to Little Moonbeam&apos;s Creations and
             may not be reproduced without permission.
           </p>
         </section>

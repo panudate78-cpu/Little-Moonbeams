@@ -4,7 +4,7 @@ import { ContactForm } from "@/components/contact-form";
 export const metadata: Metadata = {
   title: "Custom Orders",
   description:
-    "Commission a bespoke handmade jewellery piece from Little Moonbeam's — your stones, your story, your sparkle.",
+    "Commission a bespoke handmade jewellery piece from Little Moonbeam's Creations — your stones, your story, your sparkle.",
 };
 
 const STEPS = [

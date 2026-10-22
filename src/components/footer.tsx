@@ -70,7 +70,7 @@ export function Footer() {
       </div>
       <div className="border-t border-ivory/10 px-6 py-5">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs text-ivory/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} Little Moonbeam&apos;s. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Little Moonbeam&apos;s Creations. All rights reserved.</p>
           <p className="flex items-center gap-3">
             <span>🔒 Secure Checkout</span>
             <span>Visa · Mastercard · PayPal · Apple Pay · Google Pay</span>

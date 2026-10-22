@@ -28,7 +28,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     description:
       product.metaDescription ||
       product.description.slice(0, 160) ||
-      `${product.name} — handmade jewellery by Little Moonbeam's.`,
+      `${product.name} — handmade jewellery by Little Moonbeam's Creations.`,
     openGraph: {
       title: product.metaTitle || product.name,
       description: product.metaDescription || product.description.slice(0, 160),
@@ -62,7 +62,7 @@ export default async function ProductPage(props: Props) {
     description: product.description,
     sku: product.sku,
     image: product.images.map((i) => i.url),
-    brand: { "@type": "Brand", name: "Little Moonbeam's" },
+    brand: { "@type": "Brand", name: "Little Moonbeam's Creations" },
     offers: {
       "@type": "Offer",
       priceCurrency: "GBP",

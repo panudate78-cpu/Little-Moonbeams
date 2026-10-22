@@ -77,7 +77,7 @@ export function AddToCartPanel({ product }: { product: ActionProduct }) {
 export function ShareButtons({ name, slug }: { name: string; slug: string }) {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined" ? `${window.location.origin}/product/${slug}` : `/product/${slug}`;
-  const text = encodeURIComponent(`${name} — handmade by Little Moonbeam's ☾`);
+  const text = encodeURIComponent(`${name} — handmade by Little Moonbeam's Creations ☾`);
 
   return (
     <div className="flex items-center gap-3 text-sm text-inksoft">

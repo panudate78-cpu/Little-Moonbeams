@@ -5,7 +5,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "The story of Little Moonbeam's — handmade jewellery crafted from precious stones, crystals and sterling silver, inspired by nature and moonlight.",
+    "The story of Little Moonbeam's Creations — handmade jewellery crafted from precious stones, crystals and sterling silver, inspired by nature and moonlight.",
 };
 
 const VALUES = [
@@ -38,13 +38,13 @@ export default function AboutPage() {
           </h1>
           <div className="mt-6 space-y-4 leading-relaxed text-inksoft">
             <p>
-              Little Moonbeam&apos;s began at a kitchen table, with a pouch of moonstones, a spool
+              Little Moonbeam&apos;s Creations began at a kitchen table, with a pouch of moonstones, a spool
               of sterling silver wire, and a head full of midnight daydreams. What started as gifts
               for friends soon grew into a tiny studio filled with crystals, beads and the quiet
               joy of making things by hand.
             </p>
             <p>
-              Today, every Little Moonbeam&apos;s piece is still crafted the same way: slowly,
+              Today, every Little Moonbeam&apos;s Creations piece is still crafted the same way: slowly,
               carefully, and with genuine delight. We work with rainbow moonstone, amethyst,
               labradorite, rose quartz, freshwater pearls and dozens of other natural treasures —
               each stone chosen by hand for its colour, character and sparkle.
@@ -61,7 +61,7 @@ export default function AboutPage() {
         <div className="relative aspect-[4/5] overflow-hidden rounded-3xl">
           <Image
             src="/images/about.jpg"
-            alt="Hands crafting gemstone jewellery at the Little Moonbeam's studio"
+            alt="Hands crafting gemstone jewellery at the Little Moonbeam's Creations studio"
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"
@@ -85,7 +85,7 @@ export default function AboutPage() {
         <p className="font-script text-3xl text-lavender-deep">
           “Handcrafted jewellery inspired by nature and moonlight.”
         </p>
-        <p className="mt-4 text-sm text-inksoft">— The Little Moonbeam&apos;s promise</p>
+        <p className="mt-4 text-sm text-inksoft">— The Little Moonbeam&apos;s Creations promise</p>
       </section>
     </div>
   );

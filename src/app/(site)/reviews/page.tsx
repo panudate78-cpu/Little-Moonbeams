@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Customer Reviews",
-  description: "Read what customers say about Little Moonbeam's handmade jewellery.",
+  description: "Read what customers say about Little Moonbeam's Creations handmade jewellery.",
 };
 
 export default async function ReviewsPage() {

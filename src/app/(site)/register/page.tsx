@@ -8,7 +8,7 @@ export default function RegisterPage() {
     <div className="mx-auto max-w-md px-6 py-16">
       <div className="mb-8 text-center">
         <p className="text-4xl">✦</p>
-        <h1 className="section-title mt-3">Join Little Moonbeam&apos;s</h1>
+        <h1 className="section-title mt-3">Join Little Moonbeam&apos;s Creations</h1>
         <p className="mt-2 text-sm text-inksoft">
           Create an account to track orders and save your details.
         </p>

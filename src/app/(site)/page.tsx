@@ -87,7 +87,7 @@ export default async function HomePage() {
           Where nature&apos;s treasures become <span className="font-script text-lavender-deep">wearable magic</span>
         </h2>
         <p className="mt-5 leading-relaxed text-inksoft">
-          Every Little Moonbeam&apos;s piece begins with a hand-picked stone — a luminous moonstone, a
+          Every Little Moonbeam's Creations piece begins with a hand-picked stone — a luminous moonstone, a
           whisper of amethyst, a flash of labradorite — and is lovingly shaped with sterling silver,
           natural materials and artisan beads. No two pieces are ever quite the same, just like the
           phases of the moon.
@@ -240,7 +240,7 @@ export default async function HomePage() {
             >
               <Image
                 src={src}
-                alt="Little Moonbeam's on Instagram"
+                alt="Little Moonbeam's Creations on Instagram"
                 fill
                 sizes="(max-width: 640px) 33vw, 16vw"
                 className="object-cover transition duration-500 group-hover:scale-110"

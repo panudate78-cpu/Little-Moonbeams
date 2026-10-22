@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Frequently asked questions about Little Moonbeam's handmade jewellery.",
+  description: "Frequently asked questions about Little Moonbeam's Creations handmade jewellery.",
 };
 
 const FAQS = [
