@@ -1,58 +1,129 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   MAINTENANCE_PATH,
-  shouldBlockPublicRequest,
+  decideRequest,
+  logDecision,
+  type MaintenanceDecision,
 } from "@/lib/maintenance";
 import { SESSION_COOKIE } from "@/lib/session";
 
 /**
  * ---------------------------------------------------------------------------
- * Maintenance mode gate — Next.js 16 Proxy
+ * Maintenance mode gate #1 — Next.js 16 Proxy (fast path)
  * ---------------------------------------------------------------------------
- * Runs on the Node.js runtime (Next.js 16 default for Proxy), which is why it
- * can talk to PostgreSQL through Drizzle ORM.
+ * Runs before any rendering, on the Node.js runtime (the Next.js 16 default
+ * for Proxy). Its job is to redirect as early as possible.
  *
- * In a project that uses a `src/` directory this file MUST live in `src/`
- * next to `app/`. A root-level `middleware.ts` is compiled but never invoked
- * here — that was the reason the previous attempt "did not execute".
+ * It is NOT the only line of defence: `src/app/(site)/layout.tsx` re-checks the
+ * flag during the normal server render (gate #2). If this file does not run, or
+ * if its database read fails, the layout still blocks visitors. That redundancy
+ * is deliberate: a swallowed error here used to leave the site wide open.
  *
- * See MAINTENANCE_MODE.md for the full explanation.
+ * Every response carries `x-lm-proxy` (and `x-lm-mode` when known) so you can
+ * verify from outside whether this gate executed:
+ *     curl -I https://your-domain/ | grep -i x-lm
+ *
+ * See MAINTENANCE_MODE.md.
  */
 
 export const config = {
   /**
-   * Skip the Proxy for requests that can never be redirected:
-   *  - api/       route handlers (must keep working, also exempted in code)
-   *  - _next/     build assets, image optimisation, HMR
-   *  - __nextjs   dev-overlay endpoints
+   * Only skip what can never be redirected:
+   *   _next/    build assets, image optimisation, HMR
+   *   __nextjs  dev-overlay endpoints
    *
-   * Everything else is evaluated, then `isExemptFromMaintenance()` decides.
+   * /api/* is intentionally matched: those requests are exempt in code, but
+   * running the proxy over them keeps the `x-lm-proxy` diagnostic header on
+   * API responses too.
    */
-  matcher: ["/((?!api/|_next/|__nextjs|favicon\\.ico).*)"],
+  matcher: ["/((?!_next/|__nextjs|favicon\\.ico).*)"],
 };
+
+/**
+ * Headers you can read from outside:
+ *   x-lm-proxy: exempt | pass | block | error   (did the proxy run, and what it did)
+ *   x-lm-mode:  on | off                        (the flag it resolved, when known)
+ */
+type ProxyTag = "exempt" | "pass" | "block" | "error";
+
+function withDiagnostics(
+  request: NextRequest,
+  decision: MaintenanceDecision,
+  tag: ProxyTag,
+): NextResponse {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-lm-proxy", tag);
+
+  if (decision.modeKnown) {
+    requestHeaders.set("x-lm-mode", decision.maintenanceMode ? "on" : "off");
+  }
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  response.headers.set("x-lm-proxy", tag);
+  if (decision.modeKnown) {
+    response.headers.set("x-lm-mode", decision.maintenanceMode ? "on" : "off");
+  }
+
+  return response;
+}
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
 
-  const blocked = await shouldBlockPublicRequest(
-    pathname,
-    request.cookies.get(SESSION_COOKIE)?.value,
-  );
+  let decision: MaintenanceDecision;
 
-  if (!blocked) return NextResponse.next();
+  try {
+    decision = await decideRequest({
+      pathname,
+      sessionToken: token,
+      timeoutMs: 1_500,
+    });
+  } catch (error) {
+    // decideRequest already catches database failures; this is a last resort so
+    // the proxy can never turn a request into a 500. The layout gate still runs.
+    console.error(
+      "[maintenance][proxy] could not decide for",
+      pathname,
+      "— passing to the layout gate:",
+      error instanceof Error ? error.message : error,
+    );
+
+    return withDiagnostics(
+      request,
+      {
+        blocked: false,
+        pathname,
+        exempt: false,
+        maintenanceMode: false,
+        modeKnown: false,
+        source: "fallback",
+        admin: false,
+        error: error instanceof Error ? error.message : "unknown proxy error",
+        durationMs: 0,
+      },
+      "error",
+    );
+  }
+
+  logDecision("proxy", decision);
+
+  if (!decision.blocked) {
+    return withDiagnostics(request, decision, decision.exempt ? "exempt" : "pass");
+  }
 
   // Redirect to /maintenance. 307 = temporary, so browsers and CDNs will not
-  // remember it once the shop is back online. (`url.search` is cleared so the
-  // Location header stays canonical.)
+  // remember it once the shop is back online.
   const url = request.nextUrl.clone();
   url.pathname = MAINTENANCE_PATH;
   url.search = "";
 
   const response = NextResponse.redirect(url, 307);
 
-  // Guarantees the redirect itself is never cached by Vercel's CDN.
   response.headers.set("Cache-Control", "no-store, must-revalidate");
-  response.headers.set("x-lm-maintenance", "on");
+  response.headers.set("x-lm-proxy", "block");
+  response.headers.set("x-lm-mode", "on");
 
   return response;
 }
