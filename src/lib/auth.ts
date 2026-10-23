@@ -2,11 +2,13 @@ import "server-only";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { db } from "@/db";
-import { sessions, users, type User } from "@/db/schema";
-import { and, eq, gt } from "drizzle-orm";
+import { sessions, type User } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { SESSION_COOKIE, findUserBySessionToken } from "@/lib/session";
 
-const SESSION_COOKIE = "lm_session";
 const SESSION_DAYS = 30;
+
+export { SESSION_COOKIE };
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -50,14 +52,9 @@ export async function getCurrentUser(): Promise<User | null> {
   try {
     const store = await cookies();
     const token = store.get(SESSION_COOKIE)?.value;
-    if (!token) return null;
-    const rows = await db
-      .select({ user: users })
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.id))
-      .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
-      .limit(1);
-    return rows[0]?.user ?? null;
+
+    // The lookup itself lives in `@/lib/session` so the Proxy can reuse it.
+    return await findUserBySessionToken(token);
   } catch {
     return null;
   }
