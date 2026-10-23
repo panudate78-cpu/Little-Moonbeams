@@ -97,26 +97,31 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-     <div className="card p-6">
-  <h2 className="font-display text-xl">Store Settings</h2>
+      <div className="card p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl">Store Settings</h2>
+            <p className="mt-1 text-sm text-inksoft">
+              Maintenance mode closes every public page. Admins keep access to{" "}
+              <code className="rounded bg-cream px-1">/admin</code>,{" "}
+              <code className="rounded bg-cream px-1">/api/*</code> and{" "}
+              <code className="rounded bg-cream px-1">/maintenance</code>.
+            </p>
+          </div>
 
-  <div className="mt-4 flex items-center justify-between">
-    <span className="text-sm font-medium">
-      Maintenance Mode
-    </span>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${
+              maintenanceMode
+                ? "bg-red-100 text-red-700"
+                : "bg-green-100 text-green-700"
+            }`}
+          >
+            Maintenance {maintenanceMode ? "ON" : "OFF"}
+          </span>
+        </div>
 
-    <span
-      className={`rounded-full px-3 py-1 text-xs font-bold ${
-        maintenanceMode
-          ? "bg-red-100 text-red-700"
-          : "bg-green-100 text-green-700"
-      }`}
-    >
-      {maintenanceMode ? "ON" : "OFF"}
-      <MaintenanceToggle enabled={maintenanceMode} />
-    </span>
-  </div>
-</div>
+        <MaintenanceToggle enabled={maintenanceMode} />
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Sales chart */}

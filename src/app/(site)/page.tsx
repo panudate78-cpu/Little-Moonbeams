@@ -1,4 +1,3 @@
-import MaintenancePage from "../maintenance/page";
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/db";
@@ -14,7 +13,6 @@ import { Stars } from "@/components/stars";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  return <MaintenancePage />;
   const [featured, newArrivals, bestsellers, collections, testimonials] = await Promise.all([
     getProductsByFlag("featured", 4),
     getProductsByFlag("isNew", 4),
@@ -40,8 +38,6 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-night">
         <div className="absolute inset-0">
-          
-          /
           <div className="absolute inset-0 bg-gradient-to-r from-night/90 via-night/50 to-transparent" />
         </div>
         <div className="relative mx-auto flex max-w-7xl flex-col justify-center px-6 py-24 sm:py-36">
