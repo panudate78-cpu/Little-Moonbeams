@@ -69,11 +69,26 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-ivory/10 px-6 py-5">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 text-xs text-ivory/50 sm:flex-row">
-          <p>© {new Date().getFullYear()} Little Moonbeam&apos;s Creations. All rights reserved.</p>
-          <p className="flex items-center gap-3">
-            <span>🔒 Secure Checkout</span>
-            <span>Visa · Mastercard · PayPal · Apple Pay · Google Pay</span>
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col items-center justify-between gap-3 text-xs text-ivory/50 sm:flex-row">
+            <p className="text-center sm:text-left">
+              © {new Date().getFullYear()} Little Moonbeam&apos;s Creations. All rights reserved.
+            </p>
+            <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center sm:justify-end sm:text-right">
+              <span>🔒 Secure Checkout</span>
+              <span>Visa · Mastercard · PayPal · Apple Pay · Google Pay</span>
+            </p>
+          </div>
+          <p className="mt-3 text-center text-xs leading-relaxed text-ivory/65 sm:mt-2 sm:text-left">
+            Website designed and maintained by{" "}
+            <a
+              href="https://launchpadstudio.uk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-ivory/85 underline decoration-ivory/30 underline-offset-4 transition hover:text-gold hover:decoration-gold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+            >
+              Launchpad Studio
+            </a>
           </p>
         </div>
       </div>
