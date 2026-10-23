@@ -2,8 +2,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import {
   clearMaintenanceCache,
-  getMaintenanceMode,
-  readMaintenanceModeFromDatabase,
+  getMaintenanceState,
+  readMaintenanceSnapshot,
   setMaintenanceMode,
 } from "@/lib/maintenance";
 
@@ -26,8 +26,14 @@ export async function GET() {
   if (!admin) return json({ error: "Unauthorized" }, 401);
 
   try {
-    const maintenanceMode = await readMaintenanceModeFromDatabase();
-    return json({ maintenanceMode });
+    const snapshot = await readMaintenanceSnapshot();
+
+    return json({
+      maintenanceMode: snapshot.maintenanceMode,
+      rows: snapshot.rows,
+      rowCount: snapshot.rows.length,
+      duplicateRows: snapshot.rows.length > 1,
+    });
   } catch (error) {
     console.error("[maintenance] GET failed", error);
     return json({ error: "Could not read maintenance mode" }, 500);
@@ -69,7 +75,13 @@ export async function POST(req: Request) {
     // Refresh server-rendered pages (admin dashboard etc.).
     revalidatePath("/", "layout");
 
-    return json({ ok: true, maintenanceMode: await getMaintenanceMode() });
+    const state = await getMaintenanceState();
+
+    return json({
+      ok: true,
+      maintenanceMode: state.value,
+      source: state.source,
+    });
   } catch (error) {
     console.error("[maintenance] POST failed", error);
     return json({ error: "Could not update maintenance mode" }, 500);

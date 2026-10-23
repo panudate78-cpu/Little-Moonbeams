@@ -1,5 +1,4 @@
 import { MaintenanceToggle } from "@/components/admin/maintenance-toggle";
-import { siteSettings } from "@/db/schema";
 import Link from "next/link";
 import { db } from "@/db";
 import {
@@ -12,13 +11,14 @@ import {
 } from "@/db/schema";
 import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
 import { formatPrice } from "@/lib/utils";
+import { readMaintenanceModeFromDatabase } from "@/lib/maintenance";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
   const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
-  const [revenueRow, orderCountRow, customerCountRow, subsRow, msgRow, lowStock, recentOrders, daily, topProducts, settings] =
+  const [revenueRow, orderCountRow, customerCountRow, subsRow, msgRow, lowStock, recentOrders, daily, topProducts, maintenanceMode] =
     await Promise.all([
       db
         .select({ total: sql<number>`coalesce(sum(${orders.total}), 0)` })
@@ -55,9 +55,9 @@ export default async function AdminDashboard() {
         .groupBy(orderItems.name)
         .orderBy(desc(sql`sum(${orderItems.quantity})`))
         .limit(5),
-        db.select().from(siteSettings).limit(1),
+      // Read with the SAME helper the gates use (all rows; any "true" wins).
+      readMaintenanceModeFromDatabase(),
     ]);
-  const maintenanceMode = settings[0]?.maintenanceMode ?? false;
   const revenue = Number(revenueRow[0]?.total ?? 0);
   const orderCount = Number(orderCountRow[0]?.count ?? 0);
   const customerCount = Number(customerCountRow[0]?.count ?? 0);
@@ -121,6 +121,21 @@ export default async function AdminDashboard() {
         </div>
 
         <MaintenanceToggle enabled={maintenanceMode} />
+
+        <p className="mt-3 text-xs text-inksoft">
+          Verify what the live deployment sees:{" "}
+          <a
+            href="/api/maintenance/status"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-lavender-deep underline"
+          >
+            /api/maintenance/status
+          </a>
+          . If <code className="rounded bg-cream px-1">x-lm-proxy</code> is missing from{" "}
+          <code className="rounded bg-cream px-1">curl -I /</code>, the Proxy is not
+          running for that deployment.
+        </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">

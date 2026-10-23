@@ -1,29 +1,59 @@
-import { asc, eq } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 import { siteSettings } from "@/db/schema";
 
 /**
  * ---------------------------------------------------------------------------
- * Maintenance mode
+ * Maintenance mode — single source of truth
  * ---------------------------------------------------------------------------
- * Single source of truth for "is the public site closed?".
+ * Used by BOTH gates:
+ *   - src/proxy.ts                    (fast path, runs before any rendering)
+ *   - src/app/(site)/layout.tsx       (authoritative gate, runs on every page render)
+ *   - src/app/api/admin/maintenance   (read / write)
+ *   - src/app/api/maintenance/status  (diagnostics)
  *
- * Used by:
- *   - src/proxy.ts                              (the actual request gate)
- *   - src/app/api/admin/maintenance/route.ts    (read + write)
+ * Design rules:
+ *  1. The public site must never be left open because of a swallowed error.
+ *     If the flag cannot be read, that is recorded in
+ *     `getMaintenanceDiagnostics()` and logged loudly — and the *layout* gate
+ *     (which shares the same database connection the pages already use) still
+ *     decides. The proxy alone is never the only line of defence.
+ *  2. Every row of `site_settings` is considered. If duplicates exist and any
+ *     of them says "on", maintenance is ON.
+ *  3. `MAINTENANCE_MODE_FORCE=on|off` overrides the database completely — a
+ *     switch that works even if the database is unreachable.
  *
- * The flag lives in `site_settings.maintenance_mode` (one row).
- *
- * IMPORTANT: this module is imported by the Proxy (Next.js 16 runs Proxy on
- * the Node.js runtime), so it must not import `next/headers`, `next/cache`
- * or anything else that only exists inside a React Server Component render.
- *
- * `@/db` is imported *lazily* on purpose: `src/db/index.ts` throws at import
- * time when DATABASE_URL is missing. A static import would therefore crash the
- * Proxy (and with it every single request, including /maintenance). Importing
- * it inside the function keeps that failure contained and lets us "fail open".
+ * This module is imported by the Proxy, so it must not import `next/headers`,
+ * `next/cache` or anything that only exists inside a React render.
  */
 
 export const MAINTENANCE_PATH = "/maintenance";
+
+/** How the flag was resolved. */
+export type MaintenanceModeSource = "database" | "cache" | "fallback" | "env";
+
+export type MaintenanceState = {
+  value: boolean;
+  source: MaintenanceModeSource;
+  error: string | null;
+};
+
+export type MaintenanceDecision = {
+  blocked: boolean;
+  pathname: string;
+  exempt: boolean;
+  maintenanceMode: boolean;
+  /** False when the flag could not be resolved (the header then stays absent). */
+  modeKnown: boolean;
+  source: MaintenanceModeSource;
+  admin: boolean;
+  error: string | null;
+  durationMs: number;
+};
+
+export type MaintenanceSnapshot = {
+  maintenanceMode: boolean;
+  rows: { id: number; maintenanceMode: boolean }[];
+};
 
 /**
  * Paths that stay reachable while maintenance mode is ON.
@@ -32,6 +62,9 @@ export const MAINTENANCE_PATH = "/maintenance";
  * `/api`    and `/api/*`    -> route handlers (auth, admin, checkout, health…)
  * `/maintenance`            -> the page visitors are redirected to
  * `/login`                  -> otherwise an admin could never sign in to /admin
+ *
+ * Every other public page lives inside the `(site)` route group, and that
+ * group's layout is itself gated (see src/app/(site)/layout.tsx).
  */
 const EXEMPT_EXACT = new Set<string>([MAINTENANCE_PATH, "/login"]);
 
@@ -50,22 +83,39 @@ const STATIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 const DEFAULT_CACHE_TTL_MS = 10_000;
 
-/** When the database read fails, back off briefly instead of retrying every request. */
-const FAILURE_TTL_MS = 2_000;
+/** After a failed read, retry sooner rather than hammering a broken database. */
+const FAILURE_TTL_MS = 5_000;
 
-type FlagCache = { value: boolean; expiresAt: number };
+/** A hung connection must never hang a page render. */
+const DEFAULT_DB_TIMEOUT_MS = 3_000;
+const PROXY_DB_TIMEOUT_MS = 1_500;
+
+type CacheEntry = { value: boolean; expiresAt: number; source: "database" | "fallback" };
+
+type LastError = { message: string; at: string };
 
 /**
- * Kept on `globalThis` so dev-mode hot reloads / multiple module instances
- * share one cache instead of multiplying database queries.
+ * Kept on `globalThis` so dev-mode hot reloads and multiple module instances
+ * share one cache (and one "last error") instead of multiplying queries.
  */
 const state = globalThis as typeof globalThis & {
-  __lmMaintenanceCache?: FlagCache | null;
-  __lmMaintenanceInFlight?: Promise<boolean> | null;
-  __lmMaintenanceLastErrorLog?: number;
+  __lmMaintenanceCache?: CacheEntry | null;
+  __lmMaintenanceInFlight?: Promise<MaintenanceState> | null;
+  __lmMaintenanceLastError?: LastError | null;
+  __lmMaintenanceLastDecision?: (MaintenanceDecision & { layer: string }) | null;
+  __lmMaintenanceLastErrorLogAt?: number;
 };
 
-/** Removes the last path segment duplicates and trailing slashes. */
+/** Error lines are throttled so a broken database cannot flood the logs. */
+const ERROR_LOG_INTERVAL_MS = 60_000;
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unknown error";
+}
+
+/** Normalises a pathname: strips the query string and trailing slashes. */
 export function normalizePath(pathname: string): string {
   const path = (pathname || "/").split("?")[0];
 
@@ -76,9 +126,7 @@ export function normalizePath(pathname: string): string {
   return path;
 }
 
-/**
- * True when `pathname` must keep working during maintenance mode.
- */
+/** True when `pathname` must keep working during maintenance mode. */
 export function isExemptFromMaintenance(pathname: string): boolean {
   const path = normalizePath(pathname).toLowerCase();
 
@@ -90,87 +138,173 @@ export function isExemptFromMaintenance(pathname: string): boolean {
   );
 }
 
+/** `MAINTENANCE_MODE_FORCE=on|off` — overrides the database entirely. */
+export function forcedMode(): boolean | null {
+  const raw = (process.env.MAINTENANCE_MODE_FORCE ?? "").trim().toLowerCase();
+
+  if (["1", "true", "on", "yes"].includes(raw)) return true;
+  if (["0", "false", "off", "no"].includes(raw)) return false;
+
+  return null;
+}
+
+/** Debug logging is ON by default (temporary); set MAINTENANCE_DEBUG=off to silence. */
+export function isDebugEnabled(): boolean {
+  const raw = (process.env.MAINTENANCE_DEBUG ?? "").trim().toLowerCase();
+
+  return !["0", "false", "off", "no"].includes(raw);
+}
+
 function cacheTtlMs(): number {
   const parsed = Number(process.env.MAINTENANCE_MODE_CACHE_MS);
-
   if (Number.isFinite(parsed) && parsed >= 0) return parsed;
-
   return DEFAULT_CACHE_TTL_MS;
 }
 
-function logReadError(error: unknown): void {
-  const now = Date.now();
-  const last = state.__lmMaintenanceLastErrorLog ?? 0;
-
-  // One log line per minute instead of one per request.
-  if (now - last < 60_000) return;
-
-  state.__lmMaintenanceLastErrorLog = now;
-  console.error(
-    "[maintenance] Could not read site_settings.maintenance_mode — keeping the last known state.",
-    error,
-  );
+function dbTimeoutMs(): number {
+  const parsed = Number(process.env.MAINTENANCE_DB_TIMEOUT_MS);
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return DEFAULT_DB_TIMEOUT_MS;
 }
 
+function recordError(error: unknown) {
+  state.__lmMaintenanceLastError = {
+    message: errorMessage(error),
+    at: new Date().toISOString(),
+  };
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  if (!Number.isFinite(ms) || ms <= 0) return promise;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
+  });
+
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* Database                                                                   */
+/* -------------------------------------------------------------------------- */
+
 /**
- * Uncached read straight from PostgreSQL.
+ * Uncached read. Returns EVERY row so duplicates cannot hide an "on" flag.
  * Throws if the database cannot be reached.
  */
-export async function readMaintenanceModeFromDatabase(): Promise<boolean> {
+export async function readMaintenanceSnapshot(): Promise<MaintenanceSnapshot> {
   const { db } = await import("@/db");
 
   const rows = await db
-    .select({ maintenanceMode: siteSettings.maintenanceMode })
+    .select({ id: siteSettings.id, maintenanceMode: siteSettings.maintenanceMode })
     .from(siteSettings)
-    .orderBy(asc(siteSettings.id))
-    .limit(1);
+    .orderBy(asc(siteSettings.id));
 
-  // No row yet == maintenance off.
-  return rows[0]?.maintenanceMode ?? false;
+  return {
+    // Any row that says "on" wins — a duplicate row must never leave the shop open.
+    maintenanceMode: rows.some((row) => row.maintenanceMode),
+    rows,
+  };
+}
+
+/** Convenience wrapper used by the admin dashboard and the API route. */
+export async function readMaintenanceModeFromDatabase(): Promise<boolean> {
+  const snapshot = await readMaintenanceSnapshot();
+  return snapshot.maintenanceMode;
+}
+
+/** Last value seen without touching the database (may be `null`). */
+export function peekMaintenanceMode(): boolean | null {
+  const cached = state.__lmMaintenanceCache;
+  return cached ? cached.value : null;
 }
 
 /**
- * Cached read used on the hot path (every request).
+ * Resolves the flag, with caching.
  *
- * - Cached for `MAINTENANCE_MODE_CACHE_MS` (default 10s) per server instance.
- * - Concurrent requests share a single in-flight query.
- * - On failure it keeps the last known value (or `false` if there is none) and
- *   retries in 2s. A database hiccup therefore never throws inside the Proxy,
- *   never takes the shop offline, and never keeps it offline either.
+ * - `MAINTENANCE_MODE_FORCE` wins over everything.
+ * - Otherwise the value is cached for `MAINTENANCE_MODE_CACHE_MS` (default 10s).
+ * - Concurrent requests share one in-flight query.
+ * - A failed or slow read keeps the last known value and records the reason;
+ *   it never throws into the request path.
  */
-export async function getMaintenanceMode(): Promise<boolean> {
+export async function getMaintenanceState(options?: {
+  timeoutMs?: number;
+}): Promise<MaintenanceState> {
+  const forced = forcedMode();
+
+  if (forced !== null) {
+    return { value: forced, source: "env", error: null };
+  }
+
   const now = Date.now();
   const cached = state.__lmMaintenanceCache;
 
-  if (cached && cached.expiresAt > now) return cached.value;
+  if (cached && cached.expiresAt > now) {
+    return { value: cached.value, source: "cache", error: null };
+  }
 
-  const inFlight =
-    state.__lmMaintenanceInFlight ??
-    (state.__lmMaintenanceInFlight = (async () => {
-      try {
-        const value = await readMaintenanceModeFromDatabase();
+  if (state.__lmMaintenanceInFlight) {
+    return state.__lmMaintenanceInFlight;
+  }
 
-        state.__lmMaintenanceCache = {
-          value,
-          expiresAt: Date.now() + cacheTtlMs(),
-        };
+  const timeoutMs = options?.timeoutMs ?? dbTimeoutMs();
 
-        return value;
-      } catch (error) {
-        logReadError(error);
+  const inFlight = (async (): Promise<MaintenanceState> => {
+    try {
+      const snapshot = await withTimeout(
+        readMaintenanceSnapshot(),
+        timeoutMs,
+        "maintenance: database read",
+      );
 
-        // Keep the last known state so a database blip cannot flip the shop.
-        const value = cached?.value ?? false;
-        state.__lmMaintenanceCache = {
-          value,
-          expiresAt: Date.now() + FAILURE_TTL_MS,
-        };
+      state.__lmMaintenanceCache = {
+        value: snapshot.maintenanceMode,
+        expiresAt: Date.now() + cacheTtlMs(),
+        source: "database",
+      };
+      state.__lmMaintenanceLastError = null;
 
-        return value;
-      } finally {
-        state.__lmMaintenanceInFlight = null;
+      return { value: snapshot.maintenanceMode, source: "database", error: null };
+    } catch (error) {
+      const message = errorMessage(error);
+
+      recordError(error);
+
+      const now = Date.now();
+      const lastLog = state.__lmMaintenanceLastErrorLogAt ?? 0;
+
+      if (now - lastLog > ERROR_LOG_INTERVAL_MS) {
+        state.__lmMaintenanceLastErrorLogAt = now;
+        console.error(
+          "[maintenance] Could not read site_settings.maintenance_mode — keeping the last known state.",
+          message,
+        );
       }
-    })());
+
+      // Keep the last known state so a database blip cannot flip the shop.
+      const value = cached?.value ?? false;
+
+      state.__lmMaintenanceCache = {
+        value,
+        expiresAt: Date.now() + FAILURE_TTL_MS,
+        source: "fallback",
+      };
+
+      return { value, source: "fallback", error: message };
+    } finally {
+      state.__lmMaintenanceInFlight = null;
+    }
+  })();
+
+  state.__lmMaintenanceInFlight = inFlight;
 
   return inFlight;
 }
@@ -181,35 +315,31 @@ export function clearMaintenanceCache(): void {
 }
 
 /**
- * Persists the flag. Updates the existing row (there is normally exactly one),
- * and inserts it if the table is empty so the toggle can never silently no-op.
+ * Persists the flag for EVERY existing row (there is normally exactly one),
+ * and inserts a row if the table is empty so the toggle can never no-op.
  */
 export async function setMaintenanceMode(enabled: boolean): Promise<void> {
   const { db } = await import("@/db");
 
-  const existing = await db
-    .select({ id: siteSettings.id })
-    .from(siteSettings)
-    .orderBy(asc(siteSettings.id))
-    .limit(1);
+  const updated = await db
+    .update(siteSettings)
+    .set({ maintenanceMode: enabled })
+    .returning({ id: siteSettings.id });
 
-  if (existing[0]) {
-    await db
-      .update(siteSettings)
-      .set({ maintenanceMode: enabled })
-      .where(eq(siteSettings.id, existing[0].id));
-  } else {
+  if (updated.length === 0) {
     await db.insert(siteSettings).values({ maintenanceMode: enabled });
   }
 
   clearMaintenanceCache();
 }
 
+/* -------------------------------------------------------------------------- */
+/* Admin bypass                                                               */
+/* -------------------------------------------------------------------------- */
+
 /**
- * True when the request carries a valid session belonging to an admin.
- *
- * Admins are never locked out: they can browse the storefront while
- * maintenance mode is ON (handy for checking the shop before re-opening).
+ * True when the token belongs to a signed-in admin.
+ * Any failure (no session table, database down) counts as "not an admin".
  */
 export async function hasAdminSession(
   sessionToken: string | undefined | null,
@@ -222,21 +352,207 @@ export async function hasAdminSession(
 
     return user?.role === "admin";
   } catch (error) {
-    logReadError(error);
+    recordError(error);
     return false;
   }
 }
 
-/**
- * The decision the Proxy makes for one request.
- */
-export async function shouldBlockPublicRequest(
-  pathname: string,
-  sessionToken?: string | null,
-): Promise<boolean> {
-  if (isExemptFromMaintenance(pathname)) return false;
-  if (!(await getMaintenanceMode())) return false;
-  if (await hasAdminSession(sessionToken)) return false;
+/* -------------------------------------------------------------------------- */
+/* Decisions                                                                  */
+/* -------------------------------------------------------------------------- */
 
-  return true;
+/** The decision the Proxy makes for one public request. */
+export async function decideRequest(params: {
+  pathname: string;
+  sessionToken?: string | null;
+  timeoutMs?: number;
+}): Promise<MaintenanceDecision> {
+  const startedAt = Date.now();
+  const pathname = normalizePath(params.pathname);
+
+  if (isExemptFromMaintenance(pathname)) {
+    const peeked = peekMaintenanceMode();
+
+    return {
+      blocked: false,
+      pathname,
+      exempt: true,
+      maintenanceMode: peeked ?? false,
+      modeKnown: peeked !== null,
+      source: "cache",
+      admin: false,
+      error: null,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+
+  return decideForPublicContent(pathname, params.sessionToken, params.timeoutMs, startedAt);
+}
+
+/**
+ * The decision made by `src/app/(site)/layout.tsx`.
+ *
+ * This is the authoritative gate: it runs inside the normal server render,
+ * using the same database connection the pages themselves use. Login lives
+ * outside the `(site)` group, so a blanket redirect here can never lock an
+ * admin out of /login, /admin or /api.
+ */
+export async function decideLayout(params: {
+  sessionToken?: string | null;
+  timeoutMs?: number;
+}): Promise<MaintenanceDecision> {
+  const startedAt = Date.now();
+
+  return decideForPublicContent(
+    "(site)/*",
+    params.sessionToken,
+    params.timeoutMs,
+    startedAt,
+  );
+}
+
+async function decideForPublicContent(
+  pathname: string,
+  sessionToken: string | null | undefined,
+  timeoutMs: number | undefined,
+  startedAt: number,
+): Promise<MaintenanceDecision> {
+  const { value, source, error } = await getMaintenanceState({
+    timeoutMs: timeoutMs ?? dbTimeoutMs(),
+  });
+
+  if (!value) {
+    return {
+      blocked: false,
+      pathname,
+      exempt: false,
+      maintenanceMode: false,
+      modeKnown: true,
+      source,
+      admin: false,
+      error,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+
+  // Maintenance is ON but an admin may still browse the shop.
+  const admin = await hasAdminSession(sessionToken);
+
+  return {
+    blocked: !admin,
+    pathname,
+    exempt: false,
+    maintenanceMode: true,
+    modeKnown: true,
+    source,
+    admin,
+    error,
+    durationMs: Date.now() - startedAt,
+  };
+}
+
+/**
+ * One greppable line per request while maintenance mode is being debugged.
+ * `MAINTENANCE_DEBUG=off` silences it.
+ */
+export function logDecision(layer: "proxy" | "layout", decision: MaintenanceDecision): void {
+  state.__lmMaintenanceLastDecision = { ...decision, layer };
+
+  if (!isDebugEnabled()) return;
+
+  const line = [
+    `[maintenance][${layer}]`,
+    `path=${decision.pathname}`,
+    `mode=${decision.maintenanceMode}`,
+    `source=${decision.source}`,
+    `exempt=${decision.exempt}`,
+    `admin=${decision.admin}`,
+    `blocked=${decision.blocked}`,
+    `${decision.durationMs}ms`,
+  ];
+
+  if (decision.error) {
+    line.push(`error="${decision.error}"`);
+    console.error(line.join(" "));
+    return;
+  }
+
+  console.log(line.join(" "));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Diagnostics                                                                */
+/* -------------------------------------------------------------------------- */
+
+/** Database host only — the credentials in DATABASE_URL are never exposed. */
+export function databaseHost(): string | null {
+  const url = process.env.DATABASE_URL;
+  if (!url) return null;
+
+  try {
+    return new URL(url).host;
+  } catch {
+    return "unparseable DATABASE_URL";
+  }
+}
+
+/** Everything the /api/maintenance/status endpoint reports to an admin. */
+export async function getMaintenanceDiagnostics() {
+  const forced = forcedMode();
+  const cachedAt = state.__lmMaintenanceCache;
+  const startedAt = Date.now();
+
+  let snapshot: MaintenanceSnapshot | null = null;
+  let readError: string | null = null;
+
+  try {
+    snapshot = await withTimeout(
+      readMaintenanceSnapshot(),
+      dbTimeoutMs(),
+      "maintenance: diagnostics database read",
+    );
+    state.__lmMaintenanceLastError = null;
+  } catch (error) {
+    readError = errorMessage(error);
+    recordError(error);
+  }
+
+  return {
+    maintenanceMode: snapshot?.maintenanceMode ?? cachedAt?.value ?? false,
+    databaseValue: snapshot ? snapshot.maintenanceMode : null,
+    modeSource: forced !== null ? "env" : snapshot ? "database" : "cache",
+    forcedByEnv: forced,
+    rows: snapshot?.rows ?? null,
+    rowCount: snapshot?.rows.length ?? null,
+    duplicateRows: snapshot ? snapshot.rows.length > 1 : null,
+    database: {
+      host: databaseHost(),
+      configured: Boolean(process.env.DATABASE_URL),
+      readError,
+      readMs: Date.now() - startedAt,
+    },
+    cache: cachedAt
+      ? {
+          value: cachedAt.value,
+          source: cachedAt.source,
+          expiresInMs: Math.max(0, cachedAt.expiresAt - Date.now()),
+        }
+      : null,
+    lastError: state.__lmMaintenanceLastError ?? null,
+    lastDecision: state.__lmMaintenanceLastDecision ?? null,
+    overrides: {
+      MAINTENANCE_MODE_FORCE: forced,
+      MAINTENANCE_MODE_CACHE_MS: cacheTtlMs(),
+      MAINTENANCE_DB_TIMEOUT_MS: dbTimeoutMs(),
+      MAINTENANCE_DEBUG: isDebugEnabled(),
+    },
+    runtime: {
+      node: process.version,
+      vercel: process.env.VERCEL === "1",
+      vercelEnv: process.env.VERCEL_ENV ?? null,
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID ?? null,
+      region: process.env.VERCEL_REGION ?? null,
+    },
+    checkedAt: new Date().toISOString(),
+  };
 }
